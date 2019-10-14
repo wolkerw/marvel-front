@@ -7,24 +7,36 @@ class Home extends Component {
     super(props);
 
     this.state = {
-      stories: []
+      stories: [],
+      heroes: []
     };
   }
 
-  showHeroStories = hero => {
-    let characterId;
-    switch (hero) {
-      case "Captain America":
-        characterId = 1009220;
-        break;
-      case "Black Widow":
-        characterId = 1009189;
-        break;
-      case "Iron Man":
-      default:
-        characterId = 1009368;
-        break;
-    }
+  showHeroStories = heroId => {
+    let headers = {
+      "Content-Type": "application/graphql",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Method": "*",
+      "Access-Control-Allow-Header": "*"
+    };
+
+    axios
+      .get(
+        "http://localhost:8080/heroes/stories?characterId=" + heroId,
+        {},
+        { headers: headers }
+      )
+      .then(res => {
+        if (res && res.data && res.data.data && res.data.data.results) {
+          this.setState({ stories: res.data.data.results });
+        } else alert("História não encontrada");
+      });
+  };
+
+  searchHero = event => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    if (!formData.get("characterName")) return alert("Digite o nome do herói!");
 
     let headers = {
       "Content-Type": "application/graphql",
@@ -35,18 +47,38 @@ class Home extends Component {
 
     axios
       .get(
-        "http://localhost:8080/heroes/stories?characterId=" + characterId,
+        "http://localhost:8080/hero/id?characterName=" +
+          formData.get("characterName"),
         {},
         { headers: headers }
       )
       .then(res => {
-        console.log("res.data.data.results", res.data.data.results);
+        if (
+          res &&
+          res.data &&
+          res.data.data &&
+          res.data.data.results &&
+          res.data.data.results[0] &&
+          res.data.data.results[0].id &&
+          res.data.data.results[0].name
+        ) {
+          this.setState(
+            {
+              heroes: [
+                ...this.state.heroes,
+                {
+                  id: res.data.data.results[0].id,
+                  name: res.data.data.results[0].name
+                }
+              ]
+            },
+            () => {
+              console.log(this.state.heroes);
+            }
+          );
 
-        if (res && res.data && res.data.data && res.data.data.results) {
-          this.setState({ stories: res.data.data.results });
-
-          //this.props.history.push(`/votar`);
-        } else alert("História não encontrada");
+          console.log(res.data.data.results[0]);
+        } else alert("Herói não encontrado!");
       });
   };
 
@@ -59,6 +91,15 @@ class Home extends Component {
           <br />
           <br />
         </h3>
+        <div>
+          <form onSubmit={this.searchHero}>
+            <label>
+              Hero Name (Ex.: Iron Man)
+              <input type="text" name="characterName" />
+            </label>
+            <input type="submit" value="Buscar" />
+          </form>
+        </div>
         {this.state.stories.length ? (
           <div>
             <b>Histórias:</b>
@@ -68,31 +109,24 @@ class Home extends Component {
           </div>
         ) : null}
 
-        <button
-          type="button"
-          className="btn btn-dark"
-          onClick={() => this.showHeroStories("Iron Man")}
-        >
-          Homem de Ferro
-        </button>
-        <br />
-        <br />
-        <button
-          type="button"
-          className="btn btn-dark"
-          onClick={() => this.showHeroStories("Black Widow")}
-        >
-          Viúva Negra
-        </button>
-        <br />
-        <br />
-        <button
-          type="button"
-          className="btn btn-dark"
-          onClick={() => this.showHeroStories("Captain America")}
-        >
-          Capitão América
-        </button>
+        {this.state.heroes.length ? (
+          <div>
+            <b>Heróis:</b>
+            {this.state.heroes.map(hero => (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-dark"
+                  onClick={() => this.showHeroStories(hero.id)}
+                >
+                  {hero.name}
+                </button>
+                <br />
+                <br />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     );
   }
